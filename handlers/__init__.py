@@ -11,6 +11,7 @@ from .map import router as maps_router
 from .reminder import router as reminder_router
 from .search import router as search_router
 from .quick_add import router as quick_add_router
+from .admin import router as admin_router
 
 
 routers = [
@@ -26,5 +27,6 @@ routers = [
     maps_router,
     reminder_router,
     search_router,
-    quick_add_router
+    quick_add_router,
+    admin_router
 ]
