@@ -284,3 +284,25 @@ async def db_status(message: Message):
 
     except Exception as e:
         await message.answer(f"❌ Ошибка БД: {str(e)}")
+
+
+@router.message(Command("db_info"))
+async def db_info(message: Message):
+    import os
+
+    db_url = os.getenv('DATABASE_URL', 'Не установлен')
+
+    if db_url and '@' in db_url:
+        masked_url = db_url.split('@')[0].split(':')
+        if len(masked_url) >= 3:
+            masked_url[2] = '***'
+        db_url = ':'.join(masked_url) + '@' + db_url.split('@')[1]
+
+    db_type = "PostgreSQL" if "postgres" in db_url else "SQLite"
+
+    await message.answer(
+        f"🗃️ **Информация о БД:**\n"
+        f"📊 Тип: {db_type}\n"
+        f"🔗 URL: {db_url}\n"
+        f"💾 Сохранение: {'✅ Да' if db_type == 'PostgreSQL' else '⚠️ Нет'}"
+    )

@@ -24,5 +24,22 @@ Session = sessionmaker(bind=engine)
 
 print(f"📦 Database URL: {database_url}")
 
+database_url = os.getenv('DATABASE_URL')
+
+if database_url and database_url.startswith('postgres://'):
+    database_url = database_url.replace('postgres://', 'postgresql://', 1)
+
+if not database_url:
+    database_url = 'sqlite:///travel_bot.db'
+
+connect_args = {}
+if 'sqlite' in database_url:
+    connect_args = {'check_same_thread': False}
+
+engine = create_engine(database_url, connect_args=connect_args)
+Session = sessionmaker(bind=engine)
+
+print(f"📦 Database URL: {database_url}")
+
 engine = create_engine(database_url, connect_args=connect_args, echo=True)
 Session = sessionmaker(bind=engine)
