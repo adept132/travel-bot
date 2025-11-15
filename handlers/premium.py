@@ -6,7 +6,7 @@ from aiogram.types import CallbackQuery, Message, InlineKeyboardMarkup, InlineKe
 from aiogram.fsm.context import FSMContext
 from aiogram.enums import ContentType
 from sqlalchemy import func
-from bot.travel_config import admin_id, card
+from bot.config import admin_id, card
 
 from app.travel_session import Session
 from app.travel_states import PremiumPayment

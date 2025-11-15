@@ -3,7 +3,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from handlers.reminder import send_reminders
 import logging
 from aiogram import Bot, Dispatcher
-from travel_config import token
+from config import token
 from app.travel_session import engine
 from app.travel_database import Base
 from app.travel_scheduler import premium_management_scheduler

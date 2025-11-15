@@ -8,7 +8,7 @@ import requests
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
 from sqlalchemy import func
-from bot.travel_config import mail
+from bot.config import mail
 
 from app.travel_database import User, Entry, Travel, Achievement, Media
 from app.travel_session import Session
