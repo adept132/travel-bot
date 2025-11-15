@@ -15,6 +15,7 @@ from .admin import router as admin_router
 
 
 routers = [
+    admin_router,
     start_router,
     travel_router,
     entries_router,
@@ -28,5 +29,4 @@ routers = [
     reminder_router,
     search_router,
     quick_add_router,
-    admin_router
 ]
