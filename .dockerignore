@@ -1,0 +1,76 @@
+# Конфигурационные файлы
+travel_config.py
+*.cfg
+*.ini
+*.env
+.env.local
+.env.production
+config/
+
+# Файлы окружения Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environment
+venv/
+ENV/
+env/
+.venv
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Логи
+*.log
+logs/
+
+# Базы данных
+*.db
+*.sqlite
+*.sqlite3
+
+# Временные файлы
+*.tmp
+*.temp
+
+# Файлы операционных систем
+.DS_Store
+Thumbs.db
+
+# Файлы сессий (если они хранятся локально)
+*.session
+
+# Git
+.git/
+.gitignore
+README.md
+
+# Docker
+Dockerfile*
+docker-compose*
+.dockerignore
+
+# Дополнительные файлы для Docker
+*.md
+LICENSE
