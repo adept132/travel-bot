@@ -12,6 +12,7 @@ from app.travel_utils import validate_country, validate_date, check_achievements
 
 router = Router()
 
+
 @router.callback_query(F.data == 'start_travel')
 async def start_travel(callback: CallbackQuery, state: FSMContext):
     await callback.message.answer('🌍 Какую страну вы посещаете?')
@@ -56,6 +57,14 @@ async def end_date_input(msg: Message, state: FSMContext):
 
     try:
         user = session.query(User).filter_by(tg_id=msg.from_user.id).first()
+        if not user:
+            user = User(
+                tg_id=msg.from_user.id,
+                name=msg.from_user.first_name
+            )
+            session.add(user)
+            session.commit()
+            session.refresh(user)
         travel = Travel(
             user_id=user.user_id,
             country=data["country"],
