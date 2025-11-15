@@ -5,10 +5,11 @@ import os
 import sqlalchemy
 from datetime import datetime
 from aiogram import Router, F
-from aiogram.types import Message, CallbackQuery
+from aiogram.types import Message, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.utils.keyboard import InlineKeyboardBuilder
+from sqlalchemy import desc
 
 from bot.config import admin_id
 from app.travel_session import Session
@@ -22,100 +23,108 @@ def is_admin(user_id: int) -> bool:
 
 
 def get_admin_keyboard():
-    builder = InlineKeyboardBuilder()
-    builder.button(text="📊 Статистика", callback_data="admin_stats")
-    builder.button(text="👥 Пользователи", callback_data="admin_users")
-    builder.button(text="🔄 Перезапуск", callback_data="admin_restart")
-    builder.button(text="⏸️ Остановка", callback_data="admin_stop")
-    builder.button(text="🧹 Очистка", callback_data="admin_cleanup")
-    builder.button(text="🔍 Логи", callback_data="admin_logs")
-    builder.adjust(2)
-    return builder.as_markup()
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="📊 Статистика", callback_data="admin_stats")],
+            [InlineKeyboardButton(text="👥 Пользователи", callback_data="admin_users")],
+            [InlineKeyboardButton(text="🔙 В меню", callback_data="menu")]
+        ]
+    )
 
 
-@router.message(Command("admin"))
-async def admin_panel(message: Message):
-    if not is_admin(message.from_user.id):
-        await message.answer("❌ Доступ запрещен")
-        return
-
-    await message.answer(
-        "🛠️ **Панель администратора**\n"
-        "Выберите действие:",
-        reply_markup=get_admin_keyboard()
+def get_admin_back_keyboard():
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="🔙 Назад в админку", callback_data="admin_back")]
+        ]
     )
 
 
 @router.callback_query(F.data == "admin_stats")
 async def admin_stats(callback: CallbackQuery):
-    if not is_admin(callback.from_user.id):
-        await callback.answer("❌ Доступ запрещен")
-        return
-
+    session = Session()
     try:
-        session = Session()
-        users_count = session.query(User).count()
-        travels_count = session.query(Travel).count()
-        places_count = session.query(Entry).count()
-        premium_users = session.query(User).filter(User.is_premium == True).count()
-        session.close()
+        total_users = session.query(User).count()
+        total_travels = session.query(Travel).count()
+        total_entries = session.query(Entry).count()
 
-        memory = psutil.virtual_memory()
-        disk = psutil.disk_usage('/')
+        active_users = session.query(User).join(Travel).distinct().count()
 
-        stats_text = f"""
-📊 **Статистика системы**
+        premium_users = session.query(User).filter(User.premium == True).count()
 
-👥 **Пользователи:** {users_count}
-🎫 **Премиум:** {premium_users}
-🗺️ **Путешествия:** {travels_count}
-📍 **Места:** {places_count}
+        stats_text = (
+            "📊 <b>Статистика бота</b>\n\n"
+            f"👥 Всего пользователей: <b>{total_users}</b>\n"
+            f"🚀 Активных пользователей: <b>{active_users}</b>\n"
+            f"💎 Премиум пользователей: <b>{premium_users}</b>\n"
+            f"✈️ Всего путешествий: <b>{total_travels}</b>\n"
+            f"📍 Всего записей: <b>{total_entries}</b>\n"
+        )
 
-💻 **Система:**
-├─ Память: {memory.percent}%
-├─ Диск: {disk.percent}%
-├─ Загрузка CPU: {psutil.cpu_percent()}%
-└─ Uptime: {get_uptime()}
-
-🌐 **Окружение:**
-├─ Хостинг: {os.getenv('FLY_APP_NAME', 'Локально')}
-├─ Python: {os.sys.version.split()[0]}
-└─ Время: {datetime.now().strftime('%H:%M:%S')}
-        """
-
-        await callback.message.edit_text(stats_text, reply_markup=get_admin_keyboard())
+        await callback.message.edit_text(
+            stats_text,
+            reply_markup=get_admin_back_keyboard(),
+            parse_mode='HTML'
+        )
 
     except Exception as e:
-        await callback.message.edit_text(f"❌ Ошибка: {str(e)}", reply_markup=get_admin_keyboard())
+        await callback.message.edit_text(
+            f"❌ Ошибка при получении статистики: {str(e)}",
+            reply_markup=get_admin_back_keyboard()
+        )
+    finally:
+        session.close()
 
 
 @router.callback_query(F.data == "admin_users")
 async def admin_users(callback: CallbackQuery):
-    if not is_admin(callback.from_user.id):
-        await callback.answer("❌ Доступ запрещен")
-        return
-
+    session = Session()
     try:
-        session = Session()
-        users = session.query(User).order_by(User.created_at.desc()).limit(10).all()
-        session.close()
+        users = session.query(User).order_by(desc(User.created_at)).limit(15).all()
 
-        users_text = "👥 **Последние пользователи:**\n\n"
-        for user in users:
-            users_text += f"🆔 {user.telegram_id}\n"
-            users_text += f"👤 {user.full_name or 'Без имени'}\n"
-            users_text += f"📅 {user.created_at.strftime('%d.%m.%Y %H:%M')}\n"
-            users_text += f"💎 {'Премиум' if user.is_premium else 'Бесплатно'}\n"
-            users_text += "─" * 20 + "\n"
+        if not users:
+            await callback.message.edit_text(
+                "❌ Пользователи не найдены",
+                reply_markup=get_admin_back_keyboard()
+            )
+            return
 
-        builder = InlineKeyboardBuilder()
-        builder.button(text="◀️ Назад", callback_data="admin_back")
-        builder.button(text="📧 Рассылка", callback_data="admin_broadcast")
+        users_text = "👥 <b>Последние 15 пользователей</b>\n\n"
 
-        await callback.message.edit_text(users_text, reply_markup=builder.as_markup())
+        for i, user in enumerate(users, 1):
+            user_travels = session.query(Travel).filter_by(user_id=user.user_id).count()
+            premium_status = "💎" if user.premium else "🔹"
+            created = user.created_at.strftime("%d.%m.%Y") if user.created_at else "N/A"
+
+            users_text += (
+                f"{i}. {premium_status} <b>{user.name or 'Без имени'}</b>\n"
+                f"   ID: {user.tg_id} | 🛣️ {user_travels} путей\n"
+                f"   📅 {created}\n\n"
+            )
+
+        await callback.message.edit_text(
+            users_text,
+            reply_markup=get_admin_back_keyboard(),
+            parse_mode='HTML'
+        )
 
     except Exception as e:
-        await callback.message.edit_text(f"❌ Ошибка: {str(e)}", reply_markup=get_admin_keyboard())
+        await callback.message.edit_text(
+            f"❌ Ошибка при получении пользователей: {str(e)}",
+            reply_markup=get_admin_back_keyboard()
+        )
+    finally:
+        session.close()
+
+
+@router.callback_query(F.data == "admin_back")
+async def admin_back(callback: CallbackQuery):
+    await callback.message.edit_text(
+        "🛠️ <b>Админ-панель</b>\n\n"
+        "Выберите действие:",
+        reply_markup=get_admin_keyboard(),
+        parse_mode='HTML'
+    )
 
 
 @router.callback_query(F.data == "admin_restart")
@@ -216,15 +225,6 @@ async def admin_logs(callback: CallbackQuery):
 
     except Exception as e:
         await callback.message.edit_text(f"❌ Ошибка чтения логов: {str(e)}", reply_markup=get_admin_keyboard())
-
-
-@router.callback_query(F.data == "admin_back")
-async def admin_back(callback: CallbackQuery):
-    await callback.message.edit_text(
-        "🛠️ **Панель администратора**\n"
-        "Выберите действие:",
-        reply_markup=get_admin_keyboard()
-    )
 
 
 def get_uptime() -> str:
