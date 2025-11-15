@@ -1,6 +1,6 @@
 import os
 
-token = os.getenv("API_TOKEN")
-admin_id = int(os.getenv("ADMIN_ID", 0))
-mail = os.getenv("MAIL")
-card = os.getenv("CARD")
+token = os.getenv("token")
+admin_id = int(os.getenv("admin_id", 0))
+mail = os.getenv("mail")
+card = os.getenv("card")
