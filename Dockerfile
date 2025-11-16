@@ -16,6 +16,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+  CMD curl -f http://localhost:$PORT/healthz || exit 1
+
 RUN mkdir -p /app/data
 
 CMD ["python", "fly_polling.py"]

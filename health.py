@@ -7,6 +7,9 @@ import os
 async def health_check(request):
     return web.Response(text="OK")
 
+async def healthz(request):
+    return web.Response(text="OK")
+
 
 async def self_ping():
     app_url = os.getenv('RENDER_EXTERNAL_URL')
@@ -32,6 +35,7 @@ async def start_ping(app):
 def create_app():
     app = web.Application()
     app.router.add_get('/health', health_check)
+    app.router.add_get('/healthz', healthz)
     app.on_startup.append(start_ping)
     return app
 
