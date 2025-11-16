@@ -98,22 +98,31 @@ async def rate_limit_middleware(handler, event, data):
 
 
 async def setup_bot():
-    for router in routers:
-        dp.include_router(router)
+    try:
+        for router in routers:
+            dp.include_router(router)
 
-    scheduler = AsyncIOScheduler()
-    scheduler.add_job(send_reminders, 'cron', hour=12, minute=0, args=[bot])
-    scheduler.start()
+        scheduler = AsyncIOScheduler()
+        scheduler.add_job(send_reminders, 'cron', hour=12, minute=0, args=[bot])
+        scheduler.start()
 
-    dp.error.register(global_error_handler)
-    dp.message.middleware(rate_limit_middleware)
-    dp.callback_query.middleware(rate_limit_middleware)
+        dp.error.register(global_error_handler)
+        dp.message.middleware(rate_limit_middleware)
+        dp.callback_query.middleware(rate_limit_middleware)
 
-    Base.metadata.create_all(bind=engine)
+        import asyncio
+        loop = asyncio.get_event_loop()
+        await loop.run_in_executor(None, lambda: Base.metadata.create_all(bind=engine))
 
-    asyncio.create_task(premium_management_scheduler(bot))
+        asyncio.create_task(premium_management_scheduler(bot))
 
-    print("✅ Бот настроен и готов к работе!")
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.info("✅ Бот настроен и готов к работе!")
+
+    except Exception as e:
+        logger.error(f"❌ Ошибка настройки бота: {e}")
+        raise
 
 
 async def main_polling():

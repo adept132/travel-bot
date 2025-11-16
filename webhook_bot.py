@@ -26,21 +26,27 @@ async def keep_alive():
         await asyncio.sleep(480)
 
 
-async def on_startup(bot):
-    webhook_url = f"{os.getenv('RENDER_EXTERNAL_URL')}/webhook"
+async def on_startup(app):
+    app_url = os.getenv('RENDER_EXTERNAL_URL')
+    logger.info(f"🔧 RENDER_EXTERNAL_URL: {app_url}")
+
+    if not app_url:
+        logger.error("❌ RENDER_EXTERNAL_URL not set! Using fallback...")
+        app_url = "https://travel-bot-97vm.onrender.com"
+
+    await setup_bot()
+
+    webhook_url = f"{app_url}/webhook"
     await bot.set_webhook(webhook_url)
     logger.info(f"✅ Webhook set to: {webhook_url}")
 
-    asyncio.create_task(keep_alive())
 
-
-async def on_shutdown(bot):
+async def on_shutdown(app):
     await bot.delete_webhook()
     logger.info("❌ Webhook deleted")
 
 
 async def healthz(request):
-    logger.info("🩺 Health-check received")
     return web.Response(text="OK")
 
 
@@ -49,10 +55,8 @@ async def root_handler(request):
 
 
 def main():
-    dp.startup.register(on_startup)
-    dp.shutdown.register(on_shutdown)
-
     app = web.Application()
+
     app.router.add_get('/', root_handler)
     app.router.add_get('/healthz', healthz)
     app.router.add_get('/health', healthz)
@@ -64,14 +68,14 @@ def main():
     webhook_requests_handler.register(app, path="/webhook")
     setup_application(app, dp, bot=bot)
 
+    app.on_startup.append(on_startup)
+    app.on_shutdown.append(on_shutdown)
+
+    # Запускаем сервер
     port = int(os.getenv('PORT', '8080'))
     logger.info(f"🚀 Webhook server starting on port {port}")
     web.run_app(app, host='0.0.0.0', port=port)
 
 
 if __name__ == "__main__":
-    # Сначала настраиваем бота, потом запускаем сервер
-    import asyncio
-
-    asyncio.run(setup_bot())
     main()
