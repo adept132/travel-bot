@@ -23,4 +23,4 @@ RUN mkdir -p /app/data
 
 EXPOSE 8080
 
-CMD ["python", "fly_polling.py"]
+CMD ["python", "webhook_bot.py"]

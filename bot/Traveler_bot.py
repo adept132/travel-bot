@@ -1,7 +1,7 @@
 import asyncio
+import logging
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from handlers.reminder import send_reminders
-import logging
 from aiogram import Bot, Dispatcher
 from bot.config import token
 from app.travel_session import engine
@@ -11,6 +11,11 @@ from aiogram.types import ErrorEvent, Message, CallbackQuery
 from datetime import datetime, timedelta
 from handlers import routers
 from app.travel_utils import rate_limiter
+
+bot = Bot(token=token)
+dp = Dispatcher()
+
+
 async def global_error_handler(event: ErrorEvent):
     logger = logging.getLogger(__name__)
     logger.error(f"Global error: {event.exception}", exc_info=True)
@@ -91,28 +96,27 @@ async def rate_limit_middleware(handler, event, data):
 
     return await handler(event, data)
 
-async def main():
-    bot = Bot(token=token)
-    dp = Dispatcher()
+
+async def setup_bot():
     for router in routers:
         dp.include_router(router)
+
     scheduler = AsyncIOScheduler()
     scheduler.add_job(send_reminders, 'cron', hour=12, minute=0, args=[bot])
     scheduler.start()
+
     dp.error.register(global_error_handler)
     dp.message.middleware(rate_limit_middleware)
     dp.callback_query.middleware(rate_limit_middleware)
-    print("🔄 Запуск бота...")
+
     Base.metadata.create_all(bind=engine)
+
     asyncio.create_task(premium_management_scheduler(bot))
-    print("✅ Бот запущен и готов к работе!")
+
+    print("✅ Бот настроен и готов к работе!")
+
+
+async def main_polling():
+    await setup_bot()
+    print("🔄 Запуск бота в режиме polling...")
     await dp.start_polling(bot)
-
-
-
-if __name__ == '__main__':
-    logging.basicConfig(level=logging.INFO)
-    try:
-        asyncio.run(main())
-    except KeyboardInterrupt:
-        print('👋 Выключение бота...')
