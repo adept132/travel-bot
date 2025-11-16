@@ -56,15 +56,6 @@ async def admin_command(message: Message):
         parse_mode='HTML'
     )
 
-
-@router.callback_query(F.data.startswith("admin_"))
-async def check_admin_middleware(callback: CallbackQuery):
-    if callback.from_user.id not in ADMIN_IDS:
-        await callback.answer("❌ У вас нет доступа к админ-панели", show_alert=True)
-        return False
-    return True
-
-
 @router.callback_query(F.data == "admin_stats")
 async def admin_stats(callback: CallbackQuery):
     session = Session()
