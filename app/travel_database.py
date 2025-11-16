@@ -1,5 +1,5 @@
 import enum
-from sqlalchemy import Column, Integer, String, DateTime, Boolean, ForeignKey, Enum
+from sqlalchemy import Column, Integer, String, DateTime, Boolean, ForeignKey, Enum, BigInteger
 from sqlalchemy.orm import declarative_base
 from dotenv import load_dotenv
 from datetime import datetime
@@ -10,7 +10,7 @@ Base = declarative_base()
 class User(Base):
     __tablename__ = 'users'
     user_id = Column(Integer, primary_key=True)
-    tg_id = Column(Integer)
+    tg_id = Column(BigInteger)
     name = Column(String)
     created_at = Column(DateTime, default=datetime.utcnow)
     premium = Column(Boolean, default=False)
