@@ -18,32 +18,17 @@ async def keep_alive():
     while True:
         try:
             async with aiohttp.ClientSession() as session:
-                async with session.get(f"{app_url}/healthz", timeout=10) as resp:
-                    logger.info(f"🔄 Keep-alive ping: {resp.status}")
+                endpoints = ['/', '/healthz', '/health']
+                for endpoint in endpoints:
+                    try:
+                        async with session.get(f"{app_url}{endpoint}", timeout=5) as resp:
+                            logger.info(f"🔄 Ping {endpoint}: {resp.status}")
+                    except:
+                        pass
         except Exception as e:
             logger.error(f"❌ Keep-alive error: {e}")
 
-        await asyncio.sleep(480)
-
-
-async def on_startup(app):
-    app_url = os.getenv('RENDER_EXTERNAL_URL')
-    logger.info(f"🔧 RENDER_EXTERNAL_URL: {app_url}")
-
-    if not app_url:
-        logger.error("❌ RENDER_EXTERNAL_URL not set! Using fallback...")
-        app_url = "https://travel-bot-97vm.onrender.com"
-
-    await setup_bot()
-
-    webhook_url = f"{app_url}/webhook"
-    await bot.set_webhook(webhook_url)
-    logger.info(f"✅ Webhook set to: {webhook_url}")
-
-
-async def on_shutdown(app):
-    await bot.delete_webhook()
-    logger.info("❌ Webhook deleted")
+        await asyncio.sleep(120)
 
 
 async def healthz(request):
@@ -54,28 +39,55 @@ async def root_handler(request):
     return web.Response(text="Travel Bot is running!")
 
 
-def main():
+async def create_app():
     app = web.Application()
 
+    # Регистрируем обработчики
     app.router.add_get('/', root_handler)
     app.router.add_get('/healthz', healthz)
     app.router.add_get('/health', healthz)
 
-    webhook_requests_handler = SimpleRequestHandler(
-        dispatcher=dp,
-        bot=bot,
-    )
-    webhook_requests_handler.register(app, path="/webhook")
-    setup_application(app, dp, bot=bot)
+    return app
 
-    app.on_startup.append(on_startup)
-    app.on_shutdown.append(on_shutdown)
 
-    # Запускаем сервер
-    port = int(os.getenv('PORT', '8080'))
-    logger.info(f"🚀 Webhook server starting on port {port}")
-    web.run_app(app, host='0.0.0.0', port=port)
+async def main():
+    try:
+        logger.info("🔄 Setting up bot...")
+        await setup_bot()
+
+        app_url = os.getenv('RENDER_EXTERNAL_URL', 'https://travel-bot-97vm.onrender.com')
+        webhook_url = f"{app_url}/webhook"
+        await bot.set_webhook(webhook_url)
+        logger.info(f"✅ Webhook set to: {webhook_url}")
+
+        asyncio.create_task(keep_alive())
+
+        app = await create_app()
+
+        webhook_requests_handler = SimpleRequestHandler(
+            dispatcher=dp,
+            bot=bot,
+        )
+        webhook_requests_handler.register(app, path="/webhook")
+        setup_application(app, dp, bot=bot)
+
+        port = int(os.getenv('PORT', '8080'))
+        logger.info(f"🚀 Webhook server starting on port {port}")
+
+        runner = web.AppRunner(app)
+        await runner.setup()
+        site = web.TCPSite(runner, '0.0.0.0', port)
+        await site.start()
+
+        logger.info("✅ Server started successfully!")
+
+        await asyncio.Future()
+
+    except Exception as e:
+        logger.error(f"❌ Failed to start server: {e}")
+        raise
 
 
 if __name__ == "__main__":
-    main()
+    # Запускаем асинхронную main функцию
+    asyncio.run(main())
