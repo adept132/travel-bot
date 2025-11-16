@@ -21,4 +21,6 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
 
 RUN mkdir -p /app/data
 
+EXPOSE 8080
+
 CMD ["python", "fly_polling.py"]
