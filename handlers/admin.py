@@ -5,6 +5,7 @@ from aiogram.fsm.context import FSMContext
 from sqlalchemy import desc, func
 from app.travel_session import Session
 from app.travel_database import User, Travel, Entry, Achievement
+from app.traveler_keyboard import menu_keyboard
 
 router = Router()
 
@@ -268,4 +269,15 @@ async def admin_back(callback: CallbackQuery):
         "Выберите раздел:",
         reply_markup=get_admin_keyboard(),
         parse_mode='HTML'
+    )
+
+
+@router.callback_query(F.data == "menu")
+async def back_to_menu(callback: CallbackQuery, state: FSMContext):
+    await state.clear()
+
+    await callback.message.edit_text(
+        f'👋 С возвращением, {callback.from_user.first_name}!\n'
+        f'Выберите действие в меню:',
+        reply_markup=menu_keyboard
     )
