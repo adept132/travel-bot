@@ -28,7 +28,7 @@ async def keep_alive():
         except Exception as e:
             logger.error(f"❌ Keep-alive error: {e}")
 
-        await asyncio.sleep(120)
+        await asyncio.sleep(300)
 
 
 async def healthz(request):
