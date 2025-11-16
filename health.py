@@ -1,4 +1,6 @@
-﻿from aiohttp import web
+﻿import threading
+
+from aiohttp import web
 import aiohttp
 import asyncio
 import os
@@ -10,6 +12,15 @@ async def health_check(request):
 async def healthz(request):
     return web.Response(text="OK")
 
+def run_bot():
+    try:
+        print("🤖 Starting bot...")
+        from fly_polling import main
+        asyncio.run(main())
+    except Exception as e:
+        print(f"❌ Bot error: {e}")
+        import traceback
+        traceback.print_exc()
 
 async def self_ping():
     app_url = os.getenv('RENDER_EXTERNAL_URL')
@@ -41,9 +52,13 @@ def create_app():
 
 
 if __name__ == "__main__":
+    bot_thread = threading.Thread(target=run_bot, daemon=True)
+    bot_thread.start()
+
     app = create_app()
     port = int(os.getenv('PORT', '8080'))
     host = os.getenv('HOST', '0.0.0.0')
 
     print(f"🚀 Starting health server on {host}:{port}")
+    print(f"🌐 External URL: {os.getenv('RENDER_EXTERNAL_URL')}")
     web.run_app(app, host=host, port=port)
